@@ -83,7 +83,65 @@ fn apply_rec(ty: &Rc<Ty>, s: &HashMap<u32, Rc<Ty>>, s_keys: &HashSet<&u32>) -> O
 mod tests {
     use super::*;
 
-    #[test]
-    fn test() {
+    mod apply {
+        use super::*;
+
+        #[test]
+        fn empty_substitution() {
+            let ty = Ty::arr(Ty::var(0), Ty::var(1));
+            let s = HashMap::new();
+
+            assert_eq!(ty, Ty::apply(&ty, &s));
+        }
+
+        #[test]
+        fn type_without_variables() {
+            let ty = Ty::arr(Ty::bool(), Ty::arr(Ty::nat(), Ty::bool()));
+
+            let mut s = HashMap::new();
+            s.insert(0, Ty::nat());
+            s.insert(1, Ty::bool());
+
+            assert_eq!(ty, Ty::apply(&ty, &s));
+        }
+
+        #[test]
+        fn no_common_variables() {
+            let ty = Ty::arr(Ty::var(0), Ty::var(1));
+
+            let mut s = HashMap::new();
+            s.insert(2, Ty::nat());
+            s.insert(3, Ty::bool());
+
+            assert_eq!(ty, Ty::apply(&ty, &s));
+        }
+
+        #[test]
+        fn variable_type() {
+            let ty = Ty::var(0);
+
+            let mut s = HashMap::new();
+            s.insert(0, Ty::arr(Ty::bool(), Ty::var(0)));
+
+            assert_eq!(s[&0], Ty::apply(&ty, &s));
+        }
+
+        #[test]
+        fn complex_type() {
+            let ty = Ty::arr(Ty::var(0), Ty::arr(Ty::nat(), Ty::var(1)));
+
+            let mut s = HashMap::new();
+            s.insert(0, Ty::arr(Ty::var(0), Ty::bool()));
+            s.insert(1, Ty::arr(Ty::nat(), Ty::arr(Ty::var(2), Ty::var(1))));
+            s.insert(2, Ty::nat());
+
+            let applied = Ty::arr(
+                Ty::arr(Ty::var(0), Ty::bool()), 
+                Ty::arr(
+                    Ty::nat(), 
+                    Ty::arr(Ty::nat(), Ty::arr(Ty::var(2), Ty::var(1)))));
+
+            assert_eq!(applied,  Ty::apply(&ty, &s));
+        }
     }
 }
