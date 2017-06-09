@@ -2,7 +2,6 @@ extern crate type_check;
 
 use std::collections::HashMap;
 
-use type_check::apply;
 use type_check::Ty;
 
 fn main() {
@@ -12,5 +11,5 @@ fn main() {
     s.insert(0, Ty::arr(Ty::var(0), Ty::bool()));
     s.insert(1, Ty::nat());
 
-    println!("{:?}", apply(&c, &s));
+    println!("{:?}", Ty::apply(&c, &s));
 }
