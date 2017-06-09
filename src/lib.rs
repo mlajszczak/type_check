@@ -2,6 +2,23 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::rc::Rc;
 
+pub fn compose(s1: HashMap<u32, Rc<Ty>>, s2: HashMap<u32, Rc<Ty>>) -> HashMap<u32, Rc<Ty>> {
+    let mut composed = HashMap::new();
+    let s1_keys = s1.keys().collect::<HashSet<&u32>>();
+
+    for (var, ty) in &s1 {
+        composed.insert(*var, apply(ty, &s2));
+    }
+
+    for (var, ty) in &s2 {
+        if !s1_keys.contains(var) {
+            composed.insert(*var, ty.clone());
+        }
+    }
+
+    composed
+}
+
 pub fn apply(ty: &Rc<Ty>, s: &HashMap<u32, Rc<Ty>>) -> Rc<Ty> {
     let s_keys = s.keys().collect::<HashSet<&u32>>();
 
