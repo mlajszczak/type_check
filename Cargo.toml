@@ -1,0 +1,10 @@
+[package]
+name = "type_check"
+version = "0.1.0"
+authors = ["mlajszczak"]
+
+[dependencies]
+
+[lib]
+name = "type_check"
+path = "src/lib.rs"
