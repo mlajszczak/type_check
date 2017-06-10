@@ -89,7 +89,7 @@ mod tests {
             let ty = Ty::arr(Ty::var(0), Ty::var(1));
             let s = HashMap::new();
 
-            assert_eq!(ty, Ty::apply(&ty, &s));
+            assert_eq!(Ty::apply(&ty, &s), ty);
         }
 
         #[test]
@@ -100,7 +100,7 @@ mod tests {
             s.insert(0, Ty::nat());
             s.insert(1, Ty::bool());
 
-            assert_eq!(ty, Ty::apply(&ty, &s));
+            assert_eq!(Ty::apply(&ty, &s), ty);
         }
 
         #[test]
@@ -111,7 +111,7 @@ mod tests {
             s.insert(2, Ty::nat());
             s.insert(3, Ty::bool());
 
-            assert_eq!(ty, Ty::apply(&ty, &s));
+            assert_eq!(Ty::apply(&ty, &s), ty);
         }
 
         #[test]
@@ -121,7 +121,7 @@ mod tests {
             let mut s = HashMap::new();
             s.insert(0, Ty::arr(Ty::bool(), Ty::var(0)));
 
-            assert_eq!(s[&0], Ty::apply(&ty, &s));
+            assert_eq!(Ty::apply(&ty, &s), s[&0]);
         }
 
         #[test]
@@ -139,7 +139,7 @@ mod tests {
                     Ty::nat(), 
                     Ty::arr(Ty::nat(), Ty::arr(Ty::var(2), Ty::var(1)))));
 
-            assert_eq!(applied,  Ty::apply(&ty, &s));
+            assert_eq!(Ty::apply(&ty, &s), applied);
         }
     }
 }
