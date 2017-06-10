@@ -32,7 +32,16 @@ impl Ty {
         let mut composed = HashMap::new();
     
         for (var, ty) in s1 {
-            composed.insert(*var, Ty::apply(ty, &s2));
+            let applied = Ty::apply(ty, &s2);
+            match *applied {
+                Ty::Var(ref var_) => {
+                    if var == var_ {
+                        continue;
+                    }
+                }
+                _ => ()
+            }
+            composed.insert(*var, applied);
         }
     
         for (var, ty) in s2 {
@@ -140,6 +149,21 @@ mod tests {
                     Ty::arr(Ty::nat(), Ty::arr(Ty::var(2), Ty::var(1)))));
 
             assert_eq!(Ty::apply(&ty, &s), applied);
+        }
+    }
+
+    mod compose {
+        use super::*;
+
+        #[test]
+        fn neutralize_fist_subs() {
+            let mut s1 = HashMap::new();
+            s1.insert(0, Ty::var(1));
+
+            let mut s2 = HashMap::new();
+            s2.insert(1, Ty::var(0));
+
+            assert_eq!(Ty::compose(&s1, &s2), s2);
         }
     }
 }
