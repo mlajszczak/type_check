@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::rc::Rc;
 
 pub type Subs = HashMap<u32, Rc<Ty>>;
@@ -31,14 +30,13 @@ impl Ty {
 
     pub fn compose(s1: &Subs, s2: &Subs) -> Subs {
         let mut composed = HashMap::new();
-        let s1_keys = s1.keys().collect::<HashSet<&u32>>();
     
         for (var, ty) in s1 {
             composed.insert(*var, Ty::apply(ty, &s2));
         }
     
         for (var, ty) in s2 {
-            if !s1_keys.contains(var) {
+            if !s1.contains_key(var) {
                 composed.insert(*var, ty.clone());
             }
         }
@@ -47,19 +45,17 @@ impl Ty {
     }
 
     pub fn apply(ty: &Rc<Ty>, s: &Subs) -> Rc<Ty> {
-        let s_keys = s.keys().collect::<HashSet<&u32>>();
-    
-        match apply_rec(ty, s, &s_keys) {
+        match apply_rec(ty, s) {
             Some(ty_) => ty_.clone(),
             None => ty.clone(),
         }
     }
 }
 
-fn apply_rec(ty: &Rc<Ty>, s: &Subs, s_keys: &HashSet<&u32>) -> Option<Rc<Ty>> {
+fn apply_rec(ty: &Rc<Ty>, s: &Subs) -> Option<Rc<Ty>> {
     match **ty {
         Ty::Var(ref var) => {
-            if s_keys.contains(&var) {
+           if s.contains_key(&var) {
                 Some(s[var].clone())
             } else {
                 None
@@ -68,8 +64,8 @@ fn apply_rec(ty: &Rc<Ty>, s: &Subs, s_keys: &HashSet<&u32>) -> Option<Rc<Ty>> {
         Ty::Bool => None,
         Ty::Nat => None,
         Ty::Arr(ref ty1, ref ty2) => {
-            let app1 = apply_rec(ty1, s, s_keys);
-            let app2 = apply_rec(ty2, s, s_keys);
+            let app1 = apply_rec(ty1, s);
+            let app2 = apply_rec(ty2, s);
 
             match (app1, app2) {
                 (None, None) => Some(ty.clone()),
