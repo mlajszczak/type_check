@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
+pub type Constr = Vec<(Rc<Ty>, Rc<Ty>)>;
 pub type Subs = HashMap<u32, Rc<Ty>>;
 
 #[derive(Debug, PartialEq)]
@@ -58,6 +59,63 @@ impl Ty {
             Some(ty_) => ty_.clone(),
             None => ty.clone(),
         }
+    }
+
+    pub fn unify(c: &Constr) -> Option<Subs> {
+        let mut stack = Vec::new();
+
+        for constr in c {
+            let (ref ty1, ref ty2) = *constr;
+            stack.push((ty1.clone(), ty2.clone()));
+        }
+
+        let mut s = HashMap::new();
+
+        while let Some(constr) = stack.pop() {
+            let (mut ty1, mut ty2) = constr;
+            ty1 = Ty::apply(&ty1, &s);
+            ty2 = Ty::apply(&ty2, &s);
+
+            if ty1 == ty2 {
+                continue;
+            } else if let Ty::Var(ref var) = *ty1 {
+                if !contains_var(&ty2, *var) {
+                    let mut s_ = HashMap::new();
+                    s_.insert(*var, ty2.clone());
+                    s = Ty::compose(&s, &s_);
+                } else {
+                    return None;
+                }
+            } else if let Ty::Var(ref var) = *ty2 {
+                if !contains_var(&ty1, *var) {
+                    let mut s_ = HashMap::new();
+                    s_.insert(*var, ty1.clone());
+                    s = Ty::compose(&s, &s_);
+                } else {
+                    return None;
+                }
+            } else if let Ty::Arr(ref ty11, ref ty12) = *ty1 {
+                if let Ty::Arr(ref ty21, ref ty22) = *ty2 {
+                    stack.push((ty11.clone(), ty21.clone()));
+                    stack.push((ty12.clone(), ty22.clone()));
+                } else {
+                    return None;
+                }
+            } else {
+                return None;
+            }
+        }
+
+        Some(s)
+    }
+}
+
+fn contains_var(ty: &Ty, var: u32) -> bool {
+    match *ty {
+        Ty::Var(ref var_) => *var_ == var,
+        Ty::Bool => false,
+        Ty::Nat => false,
+        Ty::Arr(ref ty1, ref ty2) => contains_var(&ty1, var) || contains_var(&ty2, var),
     }
 }
 
@@ -212,6 +270,69 @@ mod tests {
             composed.insert(2, Ty::arr(Ty::nat(), Ty::var(1)));
 
             assert_eq!(Ty::compose(&s1, &s2), composed);
+        }
+    }
+
+    mod unify {
+        use super::*;
+
+        #[test]
+        fn specifying_constraints() {
+            let c = vec![
+                (Ty::var(0), Ty::nat()),
+                (Ty::var(1), Ty::bool()),
+                (Ty::var(2), Ty::arr(Ty::var(0), Ty::var(1)))];
+
+            let mut s = HashMap::new();
+            s.insert(0, Ty::nat());
+            s.insert(1, Ty::bool());
+            s.insert(2, Ty::arr(Ty::nat(), Ty::bool()));
+
+            assert_eq!(Ty::unify(&c), Some(s));
+        }
+
+        #[test]
+        fn transitive_constraints() {
+            let c = vec![
+                (Ty::var(0), Ty::var(1)),
+                (Ty::var(1), Ty::var(2)),
+                (Ty::var(2), Ty::arr(Ty::var(3), Ty::var(4)))];
+
+            let mut s = HashMap::new();
+            s.insert(0, Ty::arr(Ty::var(3), Ty::var(4)));
+            s.insert(1, Ty::arr(Ty::var(3), Ty::var(4)));
+            s.insert(2, Ty::arr(Ty::var(3), Ty::var(4)));
+
+            assert_eq!(Ty::unify(&c), Some(s));
+        }
+
+        #[test]
+        fn recursive_constraints() {
+            let c = vec![(Ty::var(0), Ty::arr(Ty::nat(), Ty::var(0)))];
+            assert_eq!(Ty::unify(&c), None);
+        }
+
+        #[test]
+        fn simple_arrow_constraints() {
+            let c = vec![(Ty::arr(Ty::nat(), Ty::nat()), Ty::arr(Ty::var(0), Ty::var(1)))];
+
+            let mut s = HashMap::new();
+            s.insert(0, Ty::nat());
+            s.insert(1, Ty::nat());
+
+            assert_eq!(Ty::unify(&c), Some(s));
+        }
+
+        #[test]
+        fn simple_fail() {
+            let c = vec![(Ty::nat(), Ty::arr(Ty::nat(), Ty::var(0)))];
+            assert_eq!(Ty::unify(&c), None);
+        }
+
+        #[test]
+        fn empty_set() {
+            let c = vec![];
+            assert_eq!(Ty::unify(&c), Some(HashMap::new()));
         }
     }
 }
